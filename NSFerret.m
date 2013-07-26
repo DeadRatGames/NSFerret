@@ -303,9 +303,9 @@
     if (view) {
         self.viewSelected = view;
         self.strutsAndBarsView.viewSelected = view;
+        [self.strutsAndBarsView setNeedsDisplay];
         [self updateFerretView];
     }
-    [self setNeedsDisplay];
 }
 
 - (void)updateFerretView
@@ -400,8 +400,6 @@
     [self.labelNumberOfSiblings setText: [NSString stringWithFormat:@"Index:%d Views:%d", [self indexOfSelectedView], [self numberOfSiblingViews]]];
     
     [self.buttonSubviews setTitle:[NSString stringWithFormat:@"Subviews (%d)", [self.viewSelected.subviews count]] forState:UIControlStateNormal];
-    
-    [self setNeedsDisplay];
     
 }
 
@@ -586,7 +584,6 @@
         }
     }
     
-    [self setNeedsDisplay];
 }
 
 #pragma mark - Style Factory
