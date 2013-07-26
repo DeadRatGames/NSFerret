@@ -15,6 +15,8 @@
 #define STATUS_BAR_HEIGHT        (20.0f)
 #define TAG_NSFERRET             67337738
 
+@class StrutsAndBarsView;
+
 @interface NSFerret ()
 
 @property (nonatomic) UIWindow* windowApplication;
@@ -23,6 +25,7 @@
 @property (nonatomic) UIView* viewSelected;
 @property (nonatomic) UIView* viewReflection;
 @property (nonatomic) UIView* viewControls;
+@property (nonatomic) StrutsAndBarsView* strutsAndBarsView;
 @property (nonatomic) UILabel* labelFerret;
 @property (nonatomic) UIButton* buttonSuperview;
 @property (nonatomic) UIButton* buttonPrevSibling;
@@ -38,10 +41,14 @@
 @property (nonatomic) UILabel* labelColor;
 @property (nonatomic) UILabel* labelNotes;
 @property (nonatomic) UIPanGestureRecognizer* pan;
-@property (assign) float borderWidth;
+@property float borderWidth;
+@property float glass;
 
 @end
 
+@interface StrutsAndBarsView : UIView
+@property (weak) UIView* viewSelected;
+@end
 
 
 @implementation NSFerret
@@ -116,8 +123,19 @@
         self.viewFerret.backgroundColor = [UIColor colorWithRed:1 green:1 blue:1 alpha:0.1];
         self.viewFerret.layer.borderColor = [UIColor lightGrayColor].CGColor;
         self.viewFerret.layer.borderWidth = self.borderWidth;
-        self.viewFerret.layer.cornerRadius = 4.0f;
+        self.viewFerret.layer.cornerRadius = 8.0f;
         [self addSubview: self.viewFerret];
+        
+        self.strutsAndBarsView = [[StrutsAndBarsView alloc] initWithFrame: CGRectMake(12.0f, 73.0f, 40.0f, 40.0f)];
+        self.strutsAndBarsView.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.2];
+        [self.viewFerret addSubview: self.strutsAndBarsView];
+        
+        UIButton* buttonGlass = [[UIButton alloc] initWithFrame:CGRectMake(self.viewFerret.bounds.size.width-125.0f, 10.0f, 50.0f, 50.0f)];
+        [self styleFerretButton:buttonGlass];
+        [buttonGlass setBackgroundColor:[UIColor colorWithRed:0 green:0 blue:0 alpha:0.5]];
+        [buttonGlass setTitle:@"Glass" forState:UIControlStateNormal];
+        [buttonGlass addTarget:self action:@selector(selectGlass) forControlEvents:UIControlEventTouchUpInside];
+        [self.viewFerret addSubview: buttonGlass];
         
         UIButton* buttonClose = [[UIButton alloc] initWithFrame:CGRectMake(self.viewFerret.bounds.size.width-60.0f, 10.0f, 50.0f, 50.0f)];
         [self styleFerretButton:buttonClose];
@@ -284,6 +302,7 @@
 {
     if (view) {
         self.viewSelected = view;
+        self.strutsAndBarsView.viewSelected = view;
         [self updateFerretView];
     }
     [self setNeedsDisplay];
@@ -351,6 +370,11 @@
         if (self.viewSelected.contentMode == UIViewContentModeScaleToFill) [notes appendString:@"* CM: Scale to Fill\n"];
     }
     
+    if (CGAffineTransformEqualToTransform(self.viewSelected.transform, CGAffineTransformIdentity) == NO) {
+        [notes appendString:@"* This view is transformed:\n"];
+        [notes appendString: [NSString stringWithFormat:@"tx:%0.2f ty:%0.2f a:%0.2f b:%0.2f c:%0.2f d:%0.2f ",self.viewSelected.transform.tx, self.viewSelected.transform.ty, self.viewSelected.transform.a, self.viewSelected.transform.b, self.viewSelected.transform.c, self.viewSelected.transform.d]];
+    }
+    
     [self.labelNotes setText: notes];
     
     [self.labelFrame setTextColor:[UIColor whiteColor]];
@@ -394,13 +418,18 @@
         self.viewReflection = [[UIView alloc] initWithFrame: rectReflection];
         [self.viewReflection setUserInteractionEnabled: NO];
         self.viewReflection.layer.borderWidth = self.borderWidth;
-        [self addSubview: self.viewReflection];
+        self.viewReflection.transform = self.viewSelected.transform;
+        [self insertSubview:self.viewReflection belowSubview: self.viewFerret];
         
         UIColor* colorReflectionBackground = [UIColor colorWithRed:0 green:1 blue:0 alpha:0.25];
         UIColor* colorReflectionBorders    = [UIColor colorWithRed:0 green:1 blue:0 alpha:1.00];
         
         if (self.viewSelected != self.viewApplication && self.viewSelected != self) {
-            if (self.viewSelected.hidden || self.viewSelected.alpha == 0.0) {
+            if (CGAffineTransformEqualToTransform(self.viewSelected.transform, CGAffineTransformIdentity) == NO) {
+                colorReflectionBackground = [UIColor colorWithRed:0 green:0 blue:1 alpha:0.25];
+                colorReflectionBorders    = [UIColor colorWithRed:0 green:0 blue:1 alpha:1.00];
+            }
+            else if (self.viewSelected.hidden || self.viewSelected.alpha == 0.0) {
                 colorReflectionBackground = [UIColor colorWithRed:1 green:0 blue:0 alpha:0.25];
                 colorReflectionBorders    = [UIColor colorWithRed:1 green:0 blue:0 alpha:1.00];
             }
@@ -503,16 +532,96 @@
     return viewNextSibling;
 }
 
+#pragma mark - Select
+
+- (void)selectClose
+{
+    [self removeFromSuperview];
+}
+
+- (void)selectGlass
+{
+    self.glass = self.glass + 0.45f;
+    if (self.glass > 1.0f) self.glass = 0.1f;
+    self.viewFerret.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:self.glass];
+}
+
+- (void)selectSuperview
+{
+    [self setSelectedView: self.viewSelected.superview];
+}
+
+- (void)selectPrevSibling
+{
+    [self setSelectedView: [self prevSibling]];
+}
+
+- (void)selectNextSibling
+{
+    [self setSelectedView: [self nextSibling]];
+}
+
+- (void)selectSubviews
+{
+    if (self.viewSelected && self.viewSelected.subviews &&
+        self.viewSelected.subviews.count > 0 && [self.viewSelected.subviews objectAtIndex:0] != nil) {
+        [self setSelectedView: [self.viewSelected.subviews objectAtIndex:0]];
+    }
+}
+
+#pragma mark - Pan Gesture Recognizer Delegate
+
+- (void)selectDidPan:(id)recognizer
+{
+    static CGPoint pointTranslationBegan;
+    if (recognizer == self.pan) {
+        if (self.pan.state == UIGestureRecognizerStateBegan) {
+            pointTranslationBegan = self.viewFerret.frame.origin;
+        } else {
+            CGPoint pointTranslated = [self.pan translationInView:self.superview];
+            self.viewFerret.frame = CGRectMake(pointTranslationBegan.x + pointTranslated.x,
+                                               pointTranslationBegan.y + pointTranslated.y,
+                                               self.viewFerret.frame.size.width,
+                                               self.viewFerret.frame.size.height);
+        }
+    }
+    
+    [self setNeedsDisplay];
+}
+
+#pragma mark - Style Factory
+
+- (void)styleFerretLabel:(UILabel*)labelToStyle
+{
+    [labelToStyle setBackgroundColor: [UIColor clearColor]];
+    [labelToStyle setFont: [NSFerret font]];
+    [labelToStyle setTextColor: [UIColor whiteColor]];
+}
+
+- (void)styleFerretButton:(UIButton*)buttonToStyle
+{
+    [buttonToStyle setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:1 alpha:0.05]];
+    [buttonToStyle.titleLabel setFont: [NSFerret fontBold]];
+    [buttonToStyle setTitleColor:[UIColor grayColor] forState:UIControlStateHighlighted];
+    [buttonToStyle setTitleColor:[UIColor darkGrayColor] forState:UIControlStateDisabled];
+    buttonToStyle.layer.cornerRadius = 4.0f;
+    buttonToStyle.layer.borderWidth = self.borderWidth;
+    buttonToStyle.layer.borderColor = [UIColor lightGrayColor].CGColor;
+}
+
+@end
+
+
+
+@implementation StrutsAndBarsView
 
 #pragma mark - Draw Rect
 
 - (void)drawRect:(CGRect)rect
 {
-    [super drawRect:rect];
-    
-    CGFloat X = 8.0f + self.viewFerret.frame.origin.x;
-    CGFloat Y = 72.0f + self.viewFerret.frame.origin.y;
-    CGFloat U =  10.0f;
+    CGFloat X = 0.0f;
+    CGFloat Y = 0.0f;
+    CGFloat U = 10.0f;
     
     CGContextRef context = UIGraphicsGetCurrentContext();
     
@@ -590,76 +699,8 @@
     CGContextSetLineWidth(context, 1.0);
     CGContextStrokePath(context);
     
-}
-
-#pragma mark - Select
-
-- (void)selectClose
-{
-    [self removeFromSuperview];
-}
-
-- (void)selectSuperview
-{
-    [self setSelectedView: self.viewSelected.superview];
-}
-
-- (void)selectPrevSibling
-{
-    [self setSelectedView: [self prevSibling]];
-}
-
-- (void)selectNextSibling
-{
-    [self setSelectedView: [self nextSibling]];
-}
-
-- (void)selectSubviews
-{
-    if (self.viewSelected && self.viewSelected.subviews &&
-        self.viewSelected.subviews.count > 0 && [self.viewSelected.subviews objectAtIndex:0] != nil) {
-        [self setSelectedView: [self.viewSelected.subviews objectAtIndex:0]];
-    }
-}
-
-#pragma mark - Pan Gesture Recognizer Delegate
-
-- (void)selectDidPan:(id)recognizer
-{
-    static CGPoint pointTranslationBegan;
-    if (recognizer == self.pan) {
-        if (self.pan.state == UIGestureRecognizerStateBegan) {
-            pointTranslationBegan = self.viewFerret.frame.origin;
-        } else {
-            CGPoint pointTranslated = [self.pan translationInView:self.superview];
-            self.viewFerret.frame = CGRectMake(pointTranslationBegan.x + pointTranslated.x,
-                                               pointTranslationBegan.y + pointTranslated.y,
-                                               self.viewFerret.frame.size.width,
-                                               self.viewFerret.frame.size.height);
-        }
-    }
-    
-    [self setNeedsDisplay];
-}
-
-#pragma mark - Style Factory
-
-- (void)styleFerretLabel:(UILabel*)labelToStyle
-{
-    [labelToStyle setBackgroundColor: [UIColor clearColor]];
-    [labelToStyle setFont: [NSFerret font]];
-    [labelToStyle setTextColor: [UIColor whiteColor]];
-}
-
-- (void)styleFerretButton:(UIButton*)buttonToStyle
-{
-    [buttonToStyle setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:1 alpha:0.05]];
-    [buttonToStyle.titleLabel setFont: [NSFerret fontBold]];
-    [buttonToStyle setTitleColor:[UIColor grayColor] forState:UIControlStateHighlighted];
-    [buttonToStyle setTitleColor:[UIColor darkGrayColor] forState:UIControlStateDisabled];
-    buttonToStyle.layer.cornerRadius = 4.0f;
-    buttonToStyle.layer.borderWidth = self.borderWidth;
-    buttonToStyle.layer.borderColor = [UIColor lightGrayColor].CGColor;
+    [super drawRect:rect];
 }
 
 @end
+
