@@ -68,6 +68,7 @@
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         UIView* viewApplicationRoot = [[[[UIApplication sharedApplication] keyWindow] subviews] objectAtIndex:0];
+        NSLog(@"There are %d", [[[[UIApplication sharedApplication] keyWindow] subviews] count]);
         ferret = [[NSFerret alloc] initWithFrame: [viewApplicationRoot bounds]];
     });
     [ferret attachFerretToApplicationWindow];
@@ -120,7 +121,7 @@
         NSLog(@"frame %@", NSStringFromCGRect(frameForFerretView));
         
         self.viewFerret = [[UIView alloc] initWithFrame: frameForFerretView];
-        self.viewFerret.backgroundColor = [UIColor colorWithRed:1 green:1 blue:1 alpha:0.1];
+        self.viewFerret.backgroundColor = [UIColor colorWithRed:0.0f green:0.0f blue:0.0f alpha:1.0];
         self.viewFerret.layer.borderColor = [UIColor lightGrayColor].CGColor;
         self.viewFerret.layer.borderWidth = self.borderWidth;
         self.viewFerret.layer.cornerRadius = 8.0f;
@@ -416,7 +417,6 @@
         self.viewReflection = [[UIView alloc] initWithFrame: rectReflection];
         [self.viewReflection setUserInteractionEnabled: NO];
         self.viewReflection.layer.borderWidth = self.borderWidth;
-        self.viewReflection.transform = self.viewSelected.transform;
         [self insertSubview:self.viewReflection belowSubview: self.viewFerret];
         
         UIColor* colorReflectionBackground = [UIColor colorWithRed:0 green:1 blue:0 alpha:0.25];
@@ -478,6 +478,11 @@
         viewFocus = viewFocus.superview;
         rectConverted.origin.x = rectConverted.origin.x + viewFocus.frame.origin.x;
         rectConverted.origin.y = rectConverted.origin.y + viewFocus.frame.origin.y;
+        if ([[viewFocus class] isSubclassOfClass:[UIScrollView class]]) {
+            UIScrollView* scrollView = (UIScrollView*)viewFocus;
+            rectConverted.origin.x -= scrollView.contentOffset.x;
+            rectConverted.origin.y -= scrollView.contentOffset.y;
+        }
     };
     if (viewToConvert != self.viewApplication && [self isLandscape] == NO && [[UIApplication sharedApplication] isStatusBarHidden] == NO) rectConverted.origin.y = rectConverted.origin.y - STATUS_BAR_HEIGHT;
     return rectConverted;
