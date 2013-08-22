@@ -642,6 +642,16 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
     
 }
 
+#pragma mark - Touches
+
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    if (self.pickingView) {
+        [self.labelPickAView removeFromSuperview];
+        self.labelPickAView = nil;
+    }
+}
+
 - (void)touchesMoved:(NSSet*)touches withEvent:(UIEvent*)event
 {
 	if (self.pickingView) {
