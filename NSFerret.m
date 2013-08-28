@@ -6,10 +6,13 @@
 //  Copyright (c) 2013 DeadRatGames All rights reserved.
 
 
+
+
 #import "NSFerret.h"
 #import <QuartzCore/QuartzCore.h>
 
-#define ENABLE_FERRET            YES
+#define ENABLE_FERRET            YES // Set to no to disable programatically
+
 #define LONG_PRESS_TIMER_FERRET  (6.7337738f)
 #define LAUNCH_TIMEOUT           (1.0f)
 #define STATUS_BAR_HEIGHT        (20.0f)
@@ -56,32 +59,32 @@
 
 @implementation NSFerret
 
+static NSFerret *ferret;
 static UILongPressGestureRecognizer *longPressGestureRecognizer;
+
+#ifdef DEBUG
 
 + (void)load
 {
-#ifdef DEBUG
 	if (ENABLE_FERRET) {
-		[self performSelector:@selector(enableFerretWithLongPress)withObject:nil afterDelay:LAUNCH_TIMEOUT];
+		[self performSelector:@selector(enableFerretLaunchWithLongPress)withObject:nil afterDelay:LAUNCH_TIMEOUT];
 	}
-#endif
 }
 
-+ (NSFerret*)ferret
+#endif
+
++ (NSFerret *)ferret
 {
-	static NSFerret *ferret = nil;
-	static dispatch_once_t onceToken;
-	dispatch_once(&onceToken, ^{
-        UIView *viewApplicationRoot = [[[[UIApplication sharedApplication] keyWindow] subviews] objectAtIndex:0];
-        NSLog(@"There are %d", [[[[UIApplication sharedApplication] keyWindow] subviews] count]);
-        ferret = [[NSFerret alloc] initWithFrame:[viewApplicationRoot bounds]];
-        [[longPressGestureRecognizer view] removeGestureRecognizer:longPressGestureRecognizer];
-    });
-	[ferret attachFerretToApplicationWindow];
+	if (ferret == nil) {
+		UIView *viewApplicationRoot = [[[[UIApplication sharedApplication] keyWindow] subviews] objectAtIndex:0];
+		ferret = [[NSFerret alloc] initWithFrame:[viewApplicationRoot bounds]];
+		[ferret attachFerretToApplicationWindow];
+	}
+    
 	return ferret;
 }
 
-+ (void)enableFerretWithLongPress
++ (void)enableFerretLaunchWithLongPress
 {
 	UIView *keyWindow = [[UIApplication sharedApplication] keyWindow];
 	if (keyWindow) {
@@ -91,14 +94,14 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	}
 }
 
-+ (UIFont*)font
++ (UIFont *)font
 {
 	static UIFont *font = nil;
 	if (font == nil) font = [UIFont fontWithName:@"CourierNewPSMT" size:12.0f];
 	return font;
 }
 
-+ (UIFont*)fontBold
++ (UIFont *)fontBold
 {
 	static UIFont *font = nil;
 	if (font == nil) font = [UIFont fontWithName:@"CourierNewPS-BoldMT" size:12.0f];
@@ -311,7 +314,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	}
 }
 
-- (void)setSelectedView:(UIView*)view
+- (void)setSelectedView:(UIView *)view
 {
 	if (view) {
 		self.viewSelected = view;
@@ -383,7 +386,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		if (self.viewSelected.contentMode == UIViewContentModeScaleToFill) [notes appendString:@"* CM: Scale to Fill\n"];
 	}
 	if ([self.viewSelected.class isSubclassOfClass:[UIControl class]]) {
-		if ([self isControlTappable:(UIControl*)self.viewSelected] == NO) [notes appendString:@"* Warning! Control untappable\n"];
+		if ([self isControlTappable:(UIControl *)self.viewSelected] == NO) [notes appendString:@"* Warning! Control untappable\n"];
 	}
     
 	if (CGAffineTransformEqualToTransform(self.viewSelected.transform, CGAffineTransformIdentity) == NO) {
@@ -422,17 +425,25 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 - (void)createReflectionOfSelectedView
 {
 	[self.viewReflection removeFromSuperview];
+    
 	self.viewReflection = nil;
     
 	if (self.viewSelected) {
         
 		CGRect rectReflection = CGRectZero;
-		if (self.viewSelected == self.viewApplication) {rectReflection = self.bounds; } else if (self.viewSelected == self) {
+        
+		if (self.viewSelected == self.viewApplication) {
 			rectReflection = self.bounds;
-		} else { rectReflection = [self rectOfViewConvertedToApplicationViewCoordinates:self.viewSelected]; }
+		} else if (self.viewSelected == self) {
+			rectReflection = self.bounds;
+		} else {
+			rectReflection = [self rectOfViewConvertedToApplicationViewCoordinates:self.viewSelected];
+		}
+        
 		self.viewReflection = [[UIView alloc] initWithFrame:rectReflection];
 		self.viewReflection.userInteractionEnabled = NO;
 		self.viewReflection.layer.borderWidth = self.borderWidth;
+        
 		[self insertSubview:self.viewReflection belowSubview:self.viewFerret];
         
 		UIColor *colorReflectionBackground = [UIColor colorWithRed:0 green:1 blue:0 alpha:0.25];
@@ -454,7 +465,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		}
         
 		if ([self.viewSelected.class isSubclassOfClass:[UIControl class]]) {
-			if ([self isControlTappable:(UIControl*)self.viewSelected] == NO) {
+			if ([self isControlTappable:(UIControl *)self.viewSelected] == NO) {
 				colorReflectionBackground = [UIColor colorWithRed:1.0 green:0.5 blue:0.0 alpha:0.25];
 				colorReflectionBorders    = [UIColor colorWithRed:1.0 green:0.5 blue:0.0 alpha:1.00];
 			}
@@ -467,7 +478,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		self.viewReflection.backgroundColor = colorReflectionBackground;
 		self.viewReflection.layer.borderColor = colorReflectionBorders.CGColor;
         
-		[UIView animateWithDuration:0.75
+		[UIView animateWithDuration:0.75f
                               delay:0
                             options:UIViewAnimationOptionBeginFromCurrentState | UIViewAnimationOptionRepeat | UIViewAnimationOptionCurveEaseInOut | UIViewAnimationOptionAutoreverse
                          animations: ^{
@@ -478,9 +489,11 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 
 - (int)indexOfSelectedView
 {
-	if (self.viewSelected.superview == nil) return 0;
+	if (self.viewSelected.superview == nil) {
+		return 0;
+	}
 	int indexOfSelectedView = 0;
-	for (UIView*view in self.viewSelected.superview.subviews) {
+	for (UIView *view in self.viewSelected.superview.subviews) {
 		if (self.viewSelected == view) return indexOfSelectedView;
 		indexOfSelectedView++;
 	}
@@ -489,11 +502,13 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 
 - (int)numberOfSiblingViews
 {
-	if (self.viewSelected.superview == nil) return 0;
+	if (self.viewSelected.superview == nil) {
+		return 0;
+	}
 	return self.viewSelected.superview.subviews.count;
 }
 
-- (CGRect)rectOfViewConvertedToApplicationViewCoordinates:(UIView*)viewToConvert
+- (CGRect)rectOfViewConvertedToApplicationViewCoordinates:(UIView *)viewToConvert
 {
 	UIView *viewFocus = viewToConvert;
 	CGRect rectConverted = viewFocus.frame;
@@ -502,12 +517,14 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		rectConverted.origin.x = rectConverted.origin.x + viewFocus.frame.origin.x;
 		rectConverted.origin.y = rectConverted.origin.y + viewFocus.frame.origin.y;
 		if ([[viewFocus class] isSubclassOfClass:[UIScrollView class]]) {
-			UIScrollView *scrollView = (UIScrollView*)viewFocus;
+			UIScrollView *scrollView = (UIScrollView *)viewFocus;
 			rectConverted.origin.x -= scrollView.contentOffset.x;
 			rectConverted.origin.y -= scrollView.contentOffset.y;
 		}
 	};
-	if (viewToConvert != self.viewApplication && [self isLandscape] == NO && [[UIApplication sharedApplication] isStatusBarHidden] == NO) rectConverted.origin.y = rectConverted.origin.y - STATUS_BAR_HEIGHT;
+	if (viewToConvert != self.viewApplication && [self isLandscape] == NO && [[UIApplication sharedApplication] isStatusBarHidden] == NO) {
+		rectConverted.origin.y = rectConverted.origin.y - STATUS_BAR_HEIGHT;
+	}
 	return rectConverted;
 }
 
@@ -536,7 +553,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	return UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation]);
 }
 
-- (UIView*)prevSibling
+- (UIView *)prevSibling
 {
 	UIView *viewPrevSibling = nil;
 	if (self.viewSelected && self.viewSelected.superview && self.viewSelected.superview.subviews.count > 0) {
@@ -547,7 +564,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	return viewPrevSibling;
 }
 
-- (UIView*)nextSibling
+- (UIView *)nextSibling
 {
 	UIView *viewNextSibling = nil;
 	if (self.viewSelected && self.viewSelected.superview && self.viewSelected.superview.subviews.count > 0) {
@@ -558,22 +575,17 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	return viewNextSibling;
 }
 
-- (BOOL)isControlTappable:(UIControl*)control
+- (BOOL)isControlTappable:(UIControl *)control
 {
-	if (control.userInteractionEnabled == NO) return NO;
-	if (control.hidden == NO) return NO;
-    
 	UIView *superview = control.superview;
+    
+	if (control.userInteractionEnabled == NO) return NO;
+	if (control.hidden == YES) return NO;
 	if (superview == nil) return NO;
-    
 	if ([self intersectExistsForTestRect:control.frame inRect:superview.bounds] == NO) return NO;
-    
-	CGRect rectOnScreen = [self rectOfViewConvertedToApplicationViewCoordinates:control];
-    
-	if ([self intersectExistsForTestRect:control.frame inRect:rectOnScreen] == NO) return NO;
+	if ([self intersectExistsForTestRect:control.frame inRect:[self rectOfViewConvertedToApplicationViewCoordinates:control]] == NO) return NO;
     
 	return YES;
-    
 }
 
 - (BOOL)intersectExistsForTestRect:(CGRect)rectTest inRect:(CGRect)rectHit
@@ -582,14 +594,14 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	if (rectTest.origin.y > rectHit.origin.y + rectHit.size.height) return NO;
 	if (rectTest.origin.x + rectTest.size.width  < rectHit.origin.x) return NO;
 	if (rectTest.origin.y + rectTest.size.height < rectHit.origin.y) return NO;
-    
 	return YES;
 }
 
-#pragma mark - Select
+#pragma mark - Selectors
 
 - (void)selectClose
 {
+    ferret = nil;
 	[self removeFromSuperview];
 }
 
@@ -634,6 +646,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	[self.labelPickAView setText:@"Drag to Pick a View"];
 	[self.labelPickAView setTextAlignment:NSTextAlignmentCenter];
 	[self.labelPickAView setTextColor:[UIColor whiteColor]];
+    
 	[self addSubview:self.labelPickAView];
     
 	self.pan.enabled = NO;
@@ -646,17 +659,17 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    if (self.pickingView) {
-        [self.labelPickAView removeFromSuperview];
-        self.labelPickAView = nil;
-    }
+	if (self.pickingView) {
+		[self.labelPickAView removeFromSuperview];
+		self.labelPickAView = nil;
+	}
 }
 
-- (void)touchesMoved:(NSSet*)touches withEvent:(UIEvent*)event
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	if (self.pickingView) {
         
-		UITouch *touch = (UITouch*)touches.anyObject;
+		UITouch *touch = (UITouch *)touches.anyObject;
         
 		CGPoint pointTapped = [touch locationInView:self];
         
@@ -671,7 +684,13 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
         
 		self.hidden = NO;
         
-		NSLog(@"hit %@", NSStringFromClass(view.class));
+        static UIView* viewHit;
+        
+        if (view && view != viewHit) {
+            viewHit = view;
+            NSLog(@"Hit view: %@", NSStringFromClass(view.class));
+        }
+        
 		[self setSelectedView:view];
         
 	}
@@ -680,7 +699,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
     
 }
 
-- (void)touchesEnded:(NSSet*)touches withEvent:(UIEvent*)event
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	if (self.pickingView) {
         
@@ -690,11 +709,9 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
         
 		[self.viewFerret setHidden:NO];
 		[self.viewControls setHidden:NO];
-        
 	}
     
 	[super touchesEnded:touches withEvent:event];
-    
 }
 
 #pragma mark - Pan Gesture Recognizer Delegate
@@ -702,6 +719,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 - (void)recognizePan:(id)recognizer
 {
 	static CGPoint pointTranslationBegan;
+    
 	if (recognizer == self.pan) {
 		if (self.pan.state == UIGestureRecognizerStateBegan) {
 			pointTranslationBegan = self.viewFerret.frame.origin;
@@ -713,19 +731,18 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 			                                   self.viewFerret.frame.size.height);
 		}
 	}
-    
 }
 
 #pragma mark - Style Factory
 
-- (void)styleFerretLabel:(UILabel*)labelToStyle
+- (void)styleFerretLabel:(UILabel *)labelToStyle
 {
 	[labelToStyle setBackgroundColor:[UIColor clearColor]];
 	[labelToStyle setFont:[NSFerret font]];
 	[labelToStyle setTextColor:[UIColor whiteColor]];
 }
 
-- (void)styleFerretButton:(UIButton*)buttonToStyle
+- (void)styleFerretButton:(UIButton *)buttonToStyle
 {
 	[buttonToStyle setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:1 alpha:0.05]];
 	[buttonToStyle.titleLabel setFont:[NSFerret fontBold]];
