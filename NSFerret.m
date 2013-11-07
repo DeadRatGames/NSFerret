@@ -46,9 +46,11 @@
 @property (nonatomic) UILabel *labelPickAView;
 @property (nonatomic) UIPanGestureRecognizer *pan;
 @property (nonatomic) UITapGestureRecognizer *tap;
-@property float borderWidth;
-@property float glass;
+@property CGFloat borderWidth;
+@property CGFloat glass;
 @property BOOL pickingView;
+
+@property CGFloat statusBarOffset;
 
 @end
 
@@ -89,7 +91,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	UIView *keyWindow = [[UIApplication sharedApplication] keyWindow];
 	if (keyWindow) {
 		longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(ferret)];
-		[longPressGestureRecognizer setMinimumPressDuration:LONG_PRESS_TIMER_FERRET];
+		[longPressGestureRecognizer setMinimumPressDuration:LONG_PRESS_TIMER_FERRET / 2.0f];
 		[keyWindow addGestureRecognizer:longPressGestureRecognizer];
 	}
 }
@@ -306,6 +308,9 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	[self removeFromSuperview];
     
 	self.windowApplication = [[UIApplication sharedApplication] keyWindow];
+    
+	self.statusBarOffset = STATUS_BAR_HEIGHT;
+    
 	if (self.windowApplication) {
 		self.viewApplication = [[self.windowApplication subviews] objectAtIndex:0];
 		[self setFrame:self.viewApplication.bounds];
@@ -432,9 +437,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
         
 		CGRect rectReflection = CGRectZero;
         
-		if (self.viewSelected == self.viewApplication) {
-			rectReflection = self.bounds;
-		} else if (self.viewSelected == self) {
+		if (self.viewSelected == self.viewApplication || self.viewSelected == self) {
 			rectReflection = self.bounds;
 		} else {
 			rectReflection = [self rectOfViewConvertedToApplicationViewCoordinates:self.viewSelected];
@@ -511,7 +514,9 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 - (CGRect)rectOfViewConvertedToApplicationViewCoordinates:(UIView *)viewToConvert
 {
 	UIView *viewFocus = viewToConvert;
+    
 	CGRect rectConverted = viewFocus.frame;
+    
 	while (viewFocus != self.viewApplication) {
 		viewFocus = viewFocus.superview;
 		rectConverted.origin.x = rectConverted.origin.x + viewFocus.frame.origin.x;
@@ -522,9 +527,28 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 			rectConverted.origin.y -= scrollView.contentOffset.y;
 		}
 	};
-	if (viewToConvert != self.viewApplication && [self isLandscape] == NO && [[UIApplication sharedApplication] isStatusBarHidden] == NO) {
-		rectConverted.origin.y = rectConverted.origin.y - STATUS_BAR_HEIGHT;
-	}
+    
+    // Status Bar Compensation (Device and OS dependant)
+    
+    BOOL iOS7plus  = ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending);
+    BOOL iOS5minus = ([[[UIDevice currentDevice] systemVersion] compare:@"5.0" options:NSNumericSearch] != NSOrderedDescending);
+    
+    if (iOS7plus == NO &&
+        [[UIApplication sharedApplication] isStatusBarHidden] == NO &&
+        [[UIApplication sharedApplication] statusBarStyle] != UIStatusBarStyleBlackTranslucent) {
+        
+        if ([self isLandscape]) {
+            if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
+                if (iOS5minus == NO) {
+                    rectConverted.origin.x = rectConverted.origin.x - self.statusBarOffset;
+                }
+            }
+        } else {
+            rectConverted.origin.y = rectConverted.origin.y - self.statusBarOffset;
+        }
+        
+    }
+    
 	return rectConverted;
 }
 
@@ -601,7 +625,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 
 - (void)selectClose
 {
-    ferret = nil;
+	ferret = nil;
 	[self removeFromSuperview];
 }
 
@@ -684,12 +708,12 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
         
 		self.hidden = NO;
         
-        static UIView* viewHit;
+		static UIView *viewHit;
         
-        if (view && view != viewHit) {
-            viewHit = view;
-            NSLog(@"Hit view: %@", NSStringFromClass(view.class));
-        }
+		if (view && view != viewHit) {
+			viewHit = view;
+			NSLog(@"Hit view: %@", NSStringFromClass(view.class));
+		}
         
 		[self setSelectedView:view];
         
