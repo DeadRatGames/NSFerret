@@ -17,7 +17,7 @@ Installing NSFerret
 Launching the Ferret UI in your App
 -----------------------------------
 
-**Hold your finger down on the screen for 7 seconds.** The Ferret UI will appear as a UIView added to the Root View of your Application and prevent further interaction with your App. Click "Shoo" to dismiss the Ferret UI.
+**Hold your finger down on the screen for 4 seconds.** The Ferret UI will appear as a UIView added to the Root View of your Application and prevent further interaction with your App. Click "Shoo" to dismiss the Ferret UI.
 
 You can also (immediately) launch the Ferret UI while you are at a breakpoint from the LLDB command line:
 
@@ -32,7 +32,7 @@ The PICK mode allows you to drag your finger across the UI to select a View.
 Information Displayed
 ---------------------
 
-Most of the fundamental UI Image properties:
+Most of the fundamental UIView properties:
 
 * Frame
 * Tag
@@ -46,10 +46,12 @@ Most of the fundamental UI Image properties:
 * User Interaction Disabled
 * UIControls that won't respond to touches are highlighted in ORANGE
 
+* NEW V2.1.0: The View Controller who ‘owns’ the view is now indicated  
+
 Check back in the future, there may be some great improvements in functionality and content!
 
 Enjoy!
 
  Christopher
 
-V2.0.2
+V2.1.0
