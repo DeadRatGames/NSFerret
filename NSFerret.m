@@ -10,6 +10,7 @@
 
 #import "NSFerret.h"
 #import <QuartzCore/QuartzCore.h>
+#import "UIViewController+Recursive.h"
 
 #define ENABLE_FERRET            YES // Set to no to disable programatically
 
@@ -36,6 +37,7 @@
 @property (nonatomic) UIButton *buttonSubviews;
 @property (nonatomic) UILabel *labelNumberOfSiblings;
 @property (nonatomic) UILabel *labelClass;
+@property (nonatomic) UILabel *labelController;
 @property (nonatomic) UILabel *labelFrame;
 @property (nonatomic) UILabel *labelTag;
 @property (nonatomic) UILabel *labelAutoresizing;
@@ -129,8 +131,6 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
         
 		CGRect frameForFerretView = [self isLandscape] ? rectLandscape : rectPortrait;
         
-		NSLog(@"frame %@", NSStringFromCGRect(frameForFerretView));
-        
 		self.viewFerret = [[UIView alloc] initWithFrame:frameForFerretView];
 		self.viewFerret.backgroundColor = [UIColor colorWithRed:0.0f green:0.0f blue:0.0f alpha:1.0];
 		self.viewFerret.layer.borderColor = [UIColor lightGrayColor].CGColor;
@@ -189,13 +189,18 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		[self styleFerretLabel:self.labelClass];
 		[self.viewFerret addSubview:self.labelClass];
         
-		UILabel *labelTitleFrame = [[UILabel alloc] initWithFrame:CGRectMake(5, self.labelClass.frame.origin.y + 15, 100, 15)];
+		self.labelController = [[UILabel alloc] initWithFrame:CGRectMake(75.0, self.labelClass.frame.origin.y + 15, 160.0, 15)];
+		[self styleFerretLabel:self.labelController];
+        [self.labelController setTextAlignment:NSTextAlignmentLeft];
+		[self.viewFerret addSubview:self.labelController];
+
+		UILabel *labelTitleFrame = [[UILabel alloc] initWithFrame:CGRectMake(5, self.labelController.frame.origin.y + 15, 100, 15)];
 		[self styleFerretLabel:labelTitleFrame];
 		[labelTitleFrame setText:@"Frame:"];
 		[labelTitleFrame setTextAlignment:NSTextAlignmentRight];
 		[self.viewFerret addSubview:labelTitleFrame];
         
-		self.labelFrame = [[UILabel alloc] initWithFrame:CGRectMake(105, self.labelClass.frame.origin.y + 15, 215, 15)];
+		self.labelFrame = [[UILabel alloc] initWithFrame:CGRectMake(105, self.labelController.frame.origin.y + 15, 215, 15)];
 		[self styleFerretLabel:self.labelFrame];
 		[self.viewFerret addSubview:self.labelFrame];
         
@@ -219,26 +224,27 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		[self styleFerretLabel:self.labelAutoresizing];
 		[self.viewFerret addSubview:self.labelAutoresizing];
         
-		UILabel *labelTitleAlpha = [[UILabel alloc] initWithFrame:CGRectMake(5, self.labelAutoresizing.frame.origin.y + 15, 100, 15)];
-		[self styleFerretLabel:labelTitleAlpha];
-		[labelTitleAlpha setText:@"Alpha:"];
-		[labelTitleAlpha setTextAlignment:NSTextAlignmentRight];
-		[self.viewFerret addSubview:labelTitleAlpha];
-        
-		self.labelAlpha = [[UILabel alloc] initWithFrame:CGRectMake(105, self.labelAutoresizing.frame.origin.y + 15, 280, 15)];
-		[self styleFerretLabel:self.labelAlpha];
-		[self.viewFerret addSubview:self.labelAlpha];
-        
-		UILabel *labelTitleHidden = [[UILabel alloc] initWithFrame:CGRectMake(5, self.labelAlpha.frame.origin.y + 15, 100, 15)];
+		UILabel *labelTitleHidden = [[UILabel alloc] initWithFrame:CGRectMake(5, self.labelAutoresizing.frame.origin.y + 15, 100, 15)];
 		[self styleFerretLabel:labelTitleHidden];
 		[labelTitleHidden setText:@"Hidden:"];
 		[labelTitleHidden setTextAlignment:NSTextAlignmentRight];
 		[self.viewFerret addSubview:labelTitleHidden];
         
-		self.labelHidden = [[UILabel alloc] initWithFrame:CGRectMake(105, self.labelAlpha.frame.origin.y + 15, 280, 15)];
+		self.labelHidden = [[UILabel alloc] initWithFrame:CGRectMake(105, self.labelAutoresizing.frame.origin.y + 15, 280, 15)];
 		[self styleFerretLabel:self.labelHidden];
 		[self.viewFerret addSubview:self.labelHidden];
         
+		UILabel *labelTitleAlpha = [[UILabel alloc] initWithFrame:CGRectMake(100 + 5, self.labelAutoresizing.frame.origin.y + 15, 100, 15)];
+		[self styleFerretLabel:labelTitleAlpha];
+		[labelTitleAlpha setText:@"Alpha:"];
+		[labelTitleAlpha setTextAlignment:NSTextAlignmentRight];
+		[self.viewFerret addSubview:labelTitleAlpha];
+        
+		self.labelAlpha = [[UILabel alloc] initWithFrame:CGRectMake(100 + 105, self.labelAutoresizing.frame.origin.y + 15, 280, 15)];
+		[self styleFerretLabel:self.labelAlpha];
+		[self.viewFerret addSubview:self.labelAlpha];
+
+
 		self.labelColor = [[UILabel alloc] initWithFrame:CGRectMake(25, self.labelHidden.frame.origin.y + 15, 230, 15)];
 		[self styleFerretLabel:self.labelColor];
 		[self.labelColor setText:@"Hidden:  NO"];
@@ -312,7 +318,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 	self.statusBarOffset = STATUS_BAR_HEIGHT;
     
 	if (self.windowApplication) {
-		self.viewApplication = [[self.windowApplication subviews] objectAtIndex:0];
+		self.viewApplication = [[self.windowApplication subviews] lastObject];
 		[self setFrame:self.viewApplication.bounds];
 		[self.viewApplication addSubview:self];
 		[self setSelectedView:self.viewApplication];
@@ -337,7 +343,9 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
     
 	[self.labelFrame setText:[NSString stringWithFormat:@"% 0.1f %0.1f %0.1f %0.1f", self.viewSelected.frame.origin.x, self.viewSelected.frame.origin.y, self.viewSelected.frame.size.width, self.viewSelected.frame.size.height]];
     
-	[self.labelTag setText:[NSString stringWithFormat:@" %d", self.viewSelected.tag]];
+	[self.labelTag setText: [NSString stringWithFormat:@" %d", self.viewSelected.tag]];
+    
+    [self.labelController setText:[UIViewController nameOfControllerForView:self.viewSelected]];
     
 	[self.labelAlpha setText:[NSString stringWithFormat:@" %0.2f", self.viewSelected.alpha]];
 	[self.labelAlpha setTextColor:(self.viewSelected.alpha == 0.0f) ? [UIColor redColor]:[UIColor whiteColor]];
@@ -603,19 +611,26 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 {
 	UIView *superview = control.superview;
     
-	if (control.userInteractionEnabled == NO) return NO;
-	if (control.hidden == YES) return NO;
-	if (superview == nil) return NO;
-	if ([self intersectExistsForTestRect:control.frame inRect:superview.bounds] == NO) return NO;
-	if ([self intersectExistsForTestRect:control.frame inRect:[self rectOfViewConvertedToApplicationViewCoordinates:control]] == NO) return NO;
+	if (control.userInteractionEnabled == NO) {
+        return NO;
+    }
+	if (control.hidden) {
+        return NO;
+    }
+	if (superview == nil) {
+        return NO;
+    }
+	if ([self intersectExistsForTestRect:control.frame inRect:superview.bounds] == NO) {
+        return NO;
+    }
     
 	return YES;
 }
 
 - (BOOL)intersectExistsForTestRect:(CGRect)rectTest inRect:(CGRect)rectHit
 {
-	if (rectTest.origin.x > rectHit.origin.x + rectHit.size.width) return NO;
-	if (rectTest.origin.y > rectHit.origin.y + rectHit.size.height) return NO;
+	if (rectTest.origin.x > rectHit.origin.x + rectHit.size.width)   return NO;
+	if (rectTest.origin.y > rectHit.origin.y + rectHit.size.height)  return NO;
 	if (rectTest.origin.x + rectTest.size.width  < rectHit.origin.x) return NO;
 	if (rectTest.origin.y + rectTest.size.height < rectHit.origin.y) return NO;
 	return YES;
