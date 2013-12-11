@@ -10,7 +10,6 @@
 
 #import "NSFerret.h"
 #import <QuartzCore/QuartzCore.h>
-#import "UIViewController+Recursive.h"
 
 #define ENABLE_FERRET            YES // Set to no to disable programatically
 
@@ -56,10 +55,32 @@
 
 @end
 
+#pragma mark - Struts and Bars View for Ferret
+
 @interface StrutsAndBarsView : UIView
 @property (weak) UIView *viewSelected;
 @end
 
+
+#pragma mark - UIViewController Extension for Ferret
+
+@interface UIViewController (NSFerret)
+
++ (NSString*)nameOfControllerForView:(UIView*)view;
+
+@end
+
+
+#pragma mark - UIView Extension for Ferret
+
+@interface UIView (NSFerret)
+
+- (BOOL)_hasView:(UIView*)view;
+
+@end
+
+
+#pragma mark - NSFerret
 
 @implementation NSFerret
 
@@ -795,6 +816,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 @end
 
 
+#pragma mark - StrutsAndBarsView
 
 @implementation StrutsAndBarsView
 
@@ -887,6 +909,79 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 
 @end
 
+#pragma mark - UIViewController Category for Ferret
+
+@implementation UIViewController (NSFerret)
+
++ (NSString *)nameOfControllerForView:(UIView *)view
+{
+	UIView *viewToFind = view;
+    
+	UIViewController *rootViewController = [[[UIApplication sharedApplication] keyWindow] rootViewController];
+    
+	UIViewController *foundViewOwningViewController = [rootViewController viewControllerThatOwnsView:viewToFind];
+    
+	if (foundViewOwningViewController) {
+		return NSStringFromClass([foundViewOwningViewController class]);
+	}
+    
+	return nil;
+}
+
+- (UIViewController *)viewControllerThatOwnsView:(UIView *)viewToFind
+{
+	for (UIViewController *childViewController in self.childViewControllers) {
+        UIViewController *expViewController = [childViewController exposedViewController];
+		UIViewController *foundVC = [expViewController viewControllerThatOwnsView:viewToFind];
+		if (foundVC) {
+			return foundVC;
+		}
+	}
+    
+	if ([self.view _hasView:viewToFind]) {
+		return self;
+	}
+    
+	return nil;
+}
+
+- (UIViewController *)exposedViewController
+{
+	if (self.presentedViewController) {
+ 		return [self.presentedViewController exposedViewController];
+	}
+    
+	if ([self isKindOfClass:[UINavigationController class]]) {
+ 		UINavigationController *nav = (UINavigationController *)self;
+		return [nav.topViewController exposedViewController];
+	}
+    
+	return self;
+}
+
+@end
+
+
+#pragma mark - UIView Category for Ferret
+
+@implementation UIView (NSFerret)
+
+- (BOOL)_hasView:(UIView *)view
+{
+	if (self == view) {
+		return YES;
+	}
+    
+	for (UIView *subview in self.subviews) {
+		if ([subview _hasView:view]) {
+			return YES;
+		}
+	}
+    
+	return NO;
+}
+
+@end
 
 
 
