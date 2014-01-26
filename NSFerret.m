@@ -187,7 +187,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		[labelFerretASCII setNumberOfLines:0];
 		[labelFerretASCII setLineBreakMode:NSLineBreakByCharWrapping];
 		[labelFerretASCII setFont:[UIFont fontWithName:@"CourierNewPS-BoldMT" size:9]];
-		[labelFerretASCII setText:@"    _____          (\\=-,\n    \\ ==.`--.______/ /\"\n     `-._.--(====== /\n             \\\\---\\\\ \n              ^^   ^^\n"];
+		[labelFerretASCII setText:@"    _____          (\\OO,\n    \\ ==.`--.______/ /\"\n     `-._.--(====== /\n             \\\\---\\\\ \n              ^^   ^^\n"];
 		[labelFerretASCII setTextColor:[UIColor whiteColor]];
 		[labelFerretASCII setBackgroundColor:[UIColor colorWithRed:1 green:1 blue:1 alpha:0.1]];
 		labelFerretASCII.layer.cornerRadius = 4.0f;
@@ -214,7 +214,7 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		[self styleFerretLabel:self.labelController];
         [self.labelController setTextAlignment:NSTextAlignmentLeft];
 		[self.viewFerret addSubview:self.labelController];
-
+        
 		UILabel *labelTitleFrame = [[UILabel alloc] initWithFrame:CGRectMake(5, self.labelController.frame.origin.y + 15, 100, 15)];
 		[self styleFerretLabel:labelTitleFrame];
 		[labelTitleFrame setText:@"Frame:"];
@@ -264,8 +264,8 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 		self.labelAlpha = [[UILabel alloc] initWithFrame:CGRectMake(100 + 105, self.labelAutoresizing.frame.origin.y + 15, 280, 15)];
 		[self styleFerretLabel:self.labelAlpha];
 		[self.viewFerret addSubview:self.labelAlpha];
-
-
+        
+        
 		self.labelColor = [[UILabel alloc] initWithFrame:CGRectMake(25, self.labelHidden.frame.origin.y + 15, 230, 15)];
 		[self styleFerretLabel:self.labelColor];
 		[self.labelColor setText:@"Hidden:  NO"];
@@ -915,6 +915,10 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 
 + (NSString *)nameOfControllerForView:(UIView *)view
 {
+    if (view == nil) {
+        return nil;
+    }
+    
 	UIView *viewToFind = view;
     
 	UIViewController *rootViewController = [[[UIApplication sharedApplication] keyWindow] rootViewController];
@@ -930,33 +934,29 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 
 - (UIViewController *)viewControllerThatOwnsView:(UIView *)viewToFind
 {
+    if ([self isKindOfClass:[UINavigationController class]]) {
+ 		UINavigationController *nav = (UINavigationController *)self;
+        UIViewController* visible = [nav.visibleViewController viewControllerThatOwnsView:viewToFind];
+        if (visible) {
+            return [visible viewControllerThatOwnsView:viewToFind];
+        }
+	}
+    
+    UIViewController *viewControllerThatOwnsTheView = nil;
+    
+    if ([self.view _hasView:viewToFind]) {
+		viewControllerThatOwnsTheView = self;
+	}
+    
 	for (UIViewController *childViewController in self.childViewControllers) {
-        UIViewController *expViewController = [childViewController exposedViewController];
-		UIViewController *foundVC = [expViewController viewControllerThatOwnsView:viewToFind];
+		UIViewController *foundVC = [childViewController viewControllerThatOwnsView:viewToFind];
 		if (foundVC) {
-			return foundVC;
+			viewControllerThatOwnsTheView = foundVC;
+            continue;
 		}
 	}
     
-	if ([self.view _hasView:viewToFind]) {
-		return self;
-	}
-    
-	return nil;
-}
-
-- (UIViewController *)exposedViewController
-{
-	if (self.presentedViewController) {
- 		return [self.presentedViewController exposedViewController];
-	}
-    
-	if ([self isKindOfClass:[UINavigationController class]]) {
- 		UINavigationController *nav = (UINavigationController *)self;
-		return [nav.topViewController exposedViewController];
-	}
-    
-	return self;
+	return viewControllerThatOwnsTheView;
 }
 
 @end
@@ -982,6 +982,5 @@ static UILongPressGestureRecognizer *longPressGestureRecognizer;
 }
 
 @end
-
 
 
